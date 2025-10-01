@@ -118,5 +118,5 @@ Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalh
 
 Feito com ❤️ por **Léo Vitor**.
 
-[<img src="https://img.shields.io/badge/linkedin-%230077B5.svg?&style=for-the-badge&logo=linkedin&logoColor=white" />](https://www.linkedin.com/in/seu-linkedin-aqui/)
+[<img src="https://img.shields.io/badge/linkedin-%230077B5.svg?&style=for-the-badge&logo=linkedin&logoColor=white" />](https://www.linkedin.com/in/leo-vitor/)
 [<img src="https://img.shields.io/badge/github-%23121011.svg?&style=for-the-badge&logo=github&logoColor=white" />](https://github.com/leo-vitor)
