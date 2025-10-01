@@ -1,2 +1,6 @@
 google-generativeai
 python-dotenv
+fastapi
+uvicorn[standard]
+streamlit
+requests
