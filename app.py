@@ -7,7 +7,7 @@ import time
 
 
 # URLs da API back-end FastAPI
-API_BASE_URL = "http://127.0.0.1:8000"
+API_BASE_URL = st.secrets.get("API_BASE_URL", "http://127.0.0.1:8000")
 GENERATE_URL = f"{API_BASE_URL}/generate"
 PERSONAS_URL = f"{API_BASE_URL}/personas/"
 SUGGEST_URL = f"{API_BASE_URL}/suggest-topics"
@@ -49,7 +49,7 @@ def parse_ai_response(text: str) -> dict:
 # ----- Funções de API (sem alterações) -----
 def get_personas():
     try:
-        response = requests.get(PERSONAS_URL, timeout=10)
+        response = requests.get(PERSONAS_URL)
         if response.status_code == 200:
             return response.json()
         return []
@@ -63,7 +63,7 @@ def create_persona(nome, descricao, tom_de_voz):
         "descricao": descricao,
         "tom_de_voz": tom_de_voz
     }
-    return requests.post(PERSONAS_URL, json=persona_data, timeout=10)
+    return requests.post(PERSONAS_URL, json=persona_data)
 
 #---- Configuração da página do Streamlit ----  
 st.set_page_config(page_title="PersonaPostAI", page_icon="🤖", layout="wide")
@@ -161,7 +161,7 @@ if submit_button:
                 "redes_sociais": redes_sociais
             }
             try:
-                response = requests.post(GENERATE_URL, json=request_data, timeout=90)
+                response = requests.post(GENERATE_URL, json=request_data)
                 if response.status_code == 200:
                     result = response.json()
                     if "content" in result:
