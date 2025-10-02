@@ -1,22 +1,27 @@
 # core/prompt_templates.py
+
 PROMPT_TEMPLATE = """
-Você é um estrategista de mídias sociais e um copywriter especialista, mestre em criar variações criativas de uma mesma mensagem para diferentes públicos e plataformas.
+Você é um gerador de conteúdo para redes sociais. Sua tarefa é criar posts com base nas informações fornecidas, seguindo as regras de formatação de forma precisa.
 
 **1. Persona (Público-Alvo):**
--**Nome:** {persona_name}
--**Descrição:** {persona_description}
---**Tom de Voz a ser usado:** {persona_tone_of_voice}
+- **Nome:** {nome_da_persona}
+- **Descrição:** {descricao_da_persona}
+- **Tom de Voz a ser usado:** {tom_de_voz}
 
-*3. Objetivo do Post:**
-- **Meta Principal:** {objective}
+**2. Objetivo do Post:**
+- **Meta Principal:** {objetivo}
 
-**2.Tema Central do Post:**
-- **Meta Principal:** {post_main_goal}
+**3. Tema Central do Post:**
+- **Assunto:** {tema}
 
-**4.Instruções de Geração:**
-Com base em TODAS as informações acima, gere o contéudo para as redes sociais solicitadas abaixo.
+**4. Instruções de Geração:**
+Com base em TODAS as informações acima, gere o conteúdo para as seções de redes sociais solicitadas abaixo. Para cada seção, forneça **DUAS (2) OPÇÕES CRIATIVAS E DISTINTAS**.
 
-** Regra Fundamental:** Para CADA rede social, você DEVE fornecer **DUAS (2) OPÇÕES CRIATIVAS E DISTINTAS**. Varie o gancho inicial, a estrutura, o tom ou a chamada para ação (CTA) entre as opções. O objetivo é dar ao usuário alternativas reais. Siga estritamente o formato de saída especificado.
+---
+**REGRAS ESTRITAS DE SAÍDA:**
+- NÃO inclua saudações, introduções, despedidas, resumos de estratégia ou qualquer texto que não seja o próprio conteúdo do post formatado.
+- NÃO escreva "Opção 1", "Opção 2", "Legenda", "Tweet", etc. Siga exatamente a estrutura dos blocos de formatação.
+- Sua resposta deve começar DIRETAMENTE com a primeira linha da primeira seção solicitada (ex: `**[SAÍDA PARA INSTAGRAM]**`).
 ---
 {bloco_instagram}
 ---
@@ -24,6 +29,7 @@ Com base em TODAS as informações acima, gere o contéudo para as redes sociais
 ---
 {bloco_twitter_x}
 """
+
 INSTAGRAM_BLOCK = """
 **[SAÍDA PARA INSTAGRAM]**
 **[OPÇÃO 1]**
@@ -54,4 +60,24 @@ TWITTER_X_BLOCK = """
 **[OPÇÃO 2]**
 - **Tweet:** [Escreva aqui a segunda versão do tweet, com um gancho diferente]
 - **Hashtags:** [Sugira 2 hashtags relevantes diferentes para a opção 2]
+"""
+
+SUGGEST_TOPICS_PROMPT_TEMPLATE = """
+Você é um estrategista de conteúdo especialista em brainstorming. Sua tarefa é gerar ideias de posts para redes sociais com base em uma persona.
+
+**Persona:**
+- **Nome:** {nome_da_persona}
+- **Descrição:** {descricao_da_persona}
+
+Com base na persona acima, gere 5 ideias de temas para posts. Os temas devem ser curtos, diretos e interessantes para o público-alvo descrito.
+
+**REGRAS ESTRITAS DE SAÍDA:**
+- Retorne a resposta como uma lista numerada, e NADA MAIS.
+- NÃO inclua saudações, introduções, despedidas ou qualquer texto adicional.
+
+Exemplo de Saída:
+1. Tema A
+2. Tema B
+3. Tema C
+
 """

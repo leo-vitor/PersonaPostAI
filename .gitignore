@@ -1,0 +1,12 @@
+# Ambiente Virtual
+venv_personapost/
+
+# Arquivo de variáveis de ambiente (contém a API Key)
+.env
+
+# Arquivos gerados pelo Python
+__pycache__/
+*.pyc
+
+# Outros (se aplicável)
+.vscode/
