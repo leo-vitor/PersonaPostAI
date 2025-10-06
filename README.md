@@ -1,61 +1,65 @@
 # 🤖 PersonaPost AI
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](URL_DA_SUA_APP_STREAMLIT_AQUI)
+
 ![Python](https://img.shields.io/badge/Python-3.11+-blue?style=for-the-badge&logo=python)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.103-green?style=for-the-badge&logo=fastapi)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.27-red?style=for-the-badge&logo=streamlit)
+![FastAPI](https://img.shields.io/badge/FastAPI-green?style=for-the-badge&logo=fastapi)
+![Streamlit](https://img.shields.io/badge/Streamlit-red?style=for-the-badge&logo=streamlit)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-blue?style=for-the-badge&logo=postgresql)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
 
-Um gerador de conteúdo para redes sociais potencializado pela API do Google Gemini, projetado para criar posts personalizados com base em personas, objetivos e temas específicos.
+Um gerador de conteúdo para redes sociais potencializado pela API do Google Gemini, projetado para criar posts personalizados com base em personas, objetivos e temas específicos, com persistência de dados por navegador.
 
 ---
 
+### 🚀 **Acesse a Aplicação Ao Vivo:** [COLE A URL DA SUA APP STREAMLIT AQUI](COLE_A_URL_DA_SUA_APP_STREAMLIT_AQUI)
+
+## 🎥 Demonstração
+
+> **Nota:** É altamente recomendável que você grave um GIF da sua aplicação funcionando e o coloque aqui. Ferramentas como **ScreenToGif** ou **Kap** são ótimas para isso. Depois, basta fazer o upload do GIF para o repositório e substituir o link abaixo.
+
+![Demonstração do PersonaPost AI](URL_DO_SEU_GIF_AQUI.gif)
+
 ## 🎯 Sobre o Projeto
 
-O PersonaPost AI foi criado para resolver um desafio comum de criadores de conteúdo e gestores de redes sociais: a dificuldade de criar posts que sejam consistentes com a voz de uma marca e, ao mesmo tempo, criativos e alinhados a objetivos de marketing.
+O PersonaPost AI foi criado para resolver um desafio comum de criadores de conteúdo: a dificuldade de criar posts que sejam consistentes com a voz de uma marca e, ao mesmo tempo, criativos e alinhados a objetivos de marketing.
 
-Esta aplicação web utiliza o poder da IA generativa do Google Gemini para criar, em segundos, múltiplas opções de posts para diferentes plataformas, tudo a partir de uma interface simples e intuitiva.
+Esta aplicação web full-stack utiliza o poder da IA generativa do Google Gemini para criar, em segundos, múltiplas opções de posts para diferentes plataformas, tudo a partir de uma interface simples e intuitiva, "lembrando" das personas de cada usuário entre as visitas.
 
 ## ✨ Funcionalidades Principais
 
-* **Geração Baseada em Persona:** Crie uma persona detalhada com nome, descrição e tom de voz para garantir que o conteúdo gerado seja perfeitamente alinhado com a sua marca.
-* **Conteúdo Orientado a Objetivos:** Selecione um objetivo de marketing (Educar, Engajar, Vender, etc.) para que a IA foque o post na direção certa.
-* **Adaptação Multi-plataforma:** Gere conteúdo otimizado para Instagram, LinkedIn e Twitter/X com um único clique.
-* **Opções Criativas:** A aplicação sempre retorna duas opções distintas para cada post, oferecendo mais alternativas para o criador de conteúdo.
-* **Interface Limpa e Reativa:** Construído com Streamlit para uma experiência de usuário fluida e agradável.
+* **Persistência de Dados por Navegador:** Utiliza `localStorage` para salvar as personas de um usuário, garantindo que elas estejam disponíveis em visitas futuras sem a necessidade de login.
+* **Gerenciamento de Personas:** Crie e salve personas detalhadas, que ficam disponíveis em um menu de seleção para uso rápido.
+* **Sugestão de Temas com IA:** Se estiver sem ideias, a aplicação pode sugerir tópicos de posts relevantes para a persona selecionada.
+* **Adaptação Multi-plataforma:** Gere conteúdo otimizado para Instagram, LinkedIn e Twitter/X.
+* **Formatação Automática:** A resposta da IA é automaticamente analisada e formatada em abas, com sugestões de mídia e hashtags destacadas.
+* **Interface Limpa e Reativa:** Construído com Streamlit, utilizando uma barra lateral fixa para uma experiência de usuário fluida.
 
 ## 🛠️ Tecnologias Utilizadas
 
-Este projeto foi construído com as seguintes tecnologias:
-
-* **Linguagem:** Python 3.11+
+* **Linguagem:** Python
 * **Back-end:** FastAPI, Uvicorn
-* **Front-end:** Streamlit
-* **IA Generativa:** Google Gemini API (`gemini-pro-latest`)
+* **Front-end:** Streamlit, Streamlit Local Storage
+* **IA Generativa:** Google Gemini API
+* **Banco de Dados:** PostgreSQL (Produção), SQLite (Desenvolvimento), SQLAlchemy (ORM)
 * **Comunicação API:** Requests, Pydantic
-* **Gerenciamento de Ambiente:** python-dotenv, Ambientes Virtuais (venv)
+* **Deploy:** Render (Back-end + BD), Streamlit Community Cloud (Front-end)
 
 ## 🏛️ Arquitetura
 
-O projeto utiliza uma arquitetura de cliente-servidor desacoplada, o que o torna flexível e escalável.
-
-* O **Front-end**, construído com **Streamlit**, é responsável exclusivamente pela interface do usuário. Ele coleta os dados e os exibe de forma amigável.
-* O **Back-end**, construído com **FastAPI**, expõe uma API RESTful. Ele recebe as requisições do front-end, valida os dados, processa a lógica de negócios (chamando a API do Gemini) e retorna uma resposta estruturada em JSON.
-
-Essa separação permite que a lógica de IA possa ser reutilizada por qualquer outro cliente no futuro (como um aplicativo mobile ou um chatbot) sem nenhuma alteração no back-end.
+O projeto utiliza uma arquitetura de cliente-servidor desacoplada, o que o torna flexível e escalável. Essa separação permite que a lógica de IA possa ser reutilizada por qualquer outro cliente no futuro (como um aplicativo mobile) sem nenhuma alteração no back-end.
 
 ```
-[Usuário] <--> [🎈 Streamlit Front-end] <--> [🚀 FastAPI Back-end] <--> [🧠 Google Gemini API]
+[Usuário] <--> [🎈 Streamlit Cloud] <--> [🚀 Render Web Service] <--> [🧠 Google Gemini API]
+                                             ^
+                                             |
+                                             v
+                                          [🐘 PostgreSQL no Render]
 ```
 
 ## 🚀 Como Rodar Localmente
 
 Siga os passos abaixo para executar o projeto na sua máquina.
-
-**Pré-requisitos:**
-* Python 3.9+
-* Git
-
-**Passos:**
 
 1.  **Clone o repositório:**
     ```bash
@@ -65,13 +69,8 @@ Siga os passos abaixo para executar o projeto na sua máquina.
 
 2.  **Crie e ative o ambiente virtual:**
     ```bash
-    # Crie o ambiente
     python -m venv venv_personapost
-
-    # Ative o ambiente (Linux/macOS)
     source venv_personapost/bin/activate
-    # ou (Windows)
-    # venv_personapost\Scripts\activate
     ```
 
 3.  **Instale as dependências:**
@@ -80,39 +79,26 @@ Siga os passos abaixo para executar o projeto na sua máquina.
     ```
 
 4.  **Configure suas credenciais:**
-    * Crie um arquivo chamado `.env` na raiz do projeto.
-    * Dentro dele, adicione sua chave da API do Google Gemini:
+    * Crie um arquivo `.env` e adicione sua chave da API do Google Gemini:
         ```
         GEMINI_API_KEY="SUA_CHAVE_DE_API_AQUI"
         ```
 
 5.  **Execute a aplicação:**
-    * Você precisará de **dois terminais** abertos na pasta do projeto (com o ambiente virtual ativado em ambos).
-
-    * **No Terminal 1**, inicie o servidor do back-end:
+    * **Terminal 1 (Back-end):**
         ```bash
         uvicorn api:app --reload
         ```
-
-    * **No Terminal 2**, inicie o servidor do front-end:
+    * **Terminal 2 (Front-end):**
         ```bash
         streamlit run app.py
         ```
 
-6.  Abra seu navegador e acesse `http://localhost:8501`.
-
-## 📈 Próximos Passos
-
-Este projeto tem um grande potencial para expansão. Os próximos passos planejados incluem:
-
-* [ ] **Gerenciamento de Personas:** Implementar um banco de dados (SQLite) para salvar, carregar e deletar personas.
-* [ ] **Sugestão de Temas:** Adicionar uma funcionalidade para que a IA sugira temas de posts com base na persona.
-* [ ] **Histórico de Gerações:** Salvar os últimos posts gerados para fácil acesso.
-* [ ] **Deploy:** Publicar a aplicação em uma plataforma de nuvem (Streamlit Community Cloud para o front-end, Render para o back-end).
+6.  Acesse `http://localhost:8501`.
 
 ## 📄 Licença
 
-Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+Este projeto está sob a licença MIT.
 
 ---
 
