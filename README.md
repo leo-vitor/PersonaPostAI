@@ -12,13 +12,12 @@ Um gerador de conteúdo para redes sociais potencializado pela API do Google Gem
 
 ---
 
-### 🚀 **Acesse a Aplicação Ao Vivo:** [COLE A URL DA SUA APP STREAMLIT AQUI](COLE_A_URL_DA_SUA_APP_STREAMLIT_AQUI)
+### 🚀 **Acesse a Aplicação Ao Vivo:** [COLE A URL DA SUA APP STREAMLIT AQUI](https://personapostai.streamlit.app/)
 
 ## 🎥 Demonstração
 
-> **Nota:** É altamente recomendável que você grave um GIF da sua aplicação funcionando e o coloque aqui. Ferramentas como **ScreenToGif** ou **Kap** são ótimas para isso. Depois, basta fazer o upload do GIF para o repositório e substituir o link abaixo.
 
-![Demonstração do PersonaPost AI](URL_DO_SEU_GIF_AQUI.gif)
+![Demonstração do PersonaPost AI](Demo_PERSONAPOSTAI.gif)
 
 ## 🎯 Sobre o Projeto
 
