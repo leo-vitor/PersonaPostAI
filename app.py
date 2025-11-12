@@ -7,7 +7,7 @@ import time
 import uuid
 from streamlit_local_storage import LocalStorage
 
-# --- Configuração da Página (deve ser o primeiro comando st) ---
+# --- Configuração da Página ---
 st.set_page_config(page_title="PersonaPost AI", page_icon="🤖", layout="wide")
 
 # --- URLs da API ---
@@ -24,8 +24,20 @@ SUGGEST_URL = f"{API_BASE_URL}/suggest-topics"
 # --- Lógica de Persistência com LocalStorage ---
 localS = LocalStorage()
 
-# Tenta obter o session_id do navegador. Se não existir, o valor será None.
-session_id = localS.getItem("session_id")
+def get_persistent_session_id():
+    """
+    Busca o session_id do localStorage.
+    Se não existir, cria um novo, salva e o retorna.
+    """
+    session_id = localS.getItem("session_id")
+    if not session_id:
+        new_id = str(uuid.uuid4())
+        localS.setItem("session_id", new_id)
+        return new_id
+    return session_id
+
+session_id = get_persistent_session_id()
+        
 # --- Estado da Sessão para UI (Histórico e Sugestões) ---
 if 'generation_history' not in st.session_state:
     st.session_state.generation_history = []
@@ -65,12 +77,14 @@ def get_personas(sid):
     """Busca as personas associadas ao session_id atual."""
     if not sid: return []
     try:
-        response = requests.get(f"{PERSONAS_URL}{sid}", timeout=60)
+        response = requests.get(f"{PERSONAS_URL}{sid}", timeout=240)
         if response.status_code == 200:
             return response.json()
         return []
-    except requests.exceptions.ConnectionError:
-        st.sidebar.error("API não conectada.")
+    # Captura genérica para qualquer erro de requisição (Timeout, Conexão, etc.)
+    except requests.exceptions.RequestException as e:
+        st.sidebar.error(f"Erro ao carregar personas. O servidor pode estar 'acordando'. Tente recarregar a página.")
+        print(f"Erro em get_personas: {e}")
         return None
 
 def create_persona(sid, nome, descricao, tom_de_voz):
@@ -81,15 +95,18 @@ def create_persona(sid, nome, descricao, tom_de_voz):
         "tom_de_voz": tom_de_voz,
         "session_id": sid
     }
-    return requests.post(PERSONAS_URL, json=persona_data, timeout=30)
+    # Timeout aumentado para 120s
+    return requests.post(PERSONAS_URL, json=persona_data, timeout=120)
+
+#---- Título  ----  
+st.title("🤖 PersonaPost AI")
+st.markdown("### Gere conteúdos para redes sociais baseados em personas.")
 
 # ---- BARRA LATERAL (CONTROLES) ----
 with st.sidebar:
-    st.title("🤖 PersonaPost AI")
-    st.markdown("### Controles de Geração")
-    
     st.header("1. Selecione ou Crie uma Persona")
     
+   
     personas_list = get_personas(session_id)
     persona_options = {}
     selected_persona_name = ""
@@ -105,7 +122,7 @@ with st.sidebar:
             )
         else:
             st.info("Nenhuma persona salva. Crie uma nova abaixo.")
-
+    
     with st.expander("➕ Criar Nova Persona"):
         with st.form("new_persona_form", clear_on_submit=True):
             new_name = st.text_input("Nome da Persona")
@@ -115,11 +132,10 @@ with st.sidebar:
             if submitted:
                 if new_name and new_description and new_tone:
                     current_session_id = session_id
-                    # Se for a primeira vez do usuário, gera e salva o ID ANTES de criar a persona
                     if not current_session_id:
                         current_session_id = str(uuid.uuid4())
                         localS.setItem("session_id", current_session_id)
-                        time.sleep(0.5) # Pausa crucial para o JS salvar no navegador
+                        time.sleep(0.5) 
                     
                     response = create_persona(current_session_id, new_name, new_description, new_tone)
                     
@@ -145,17 +161,20 @@ with st.sidebar:
         if selected_persona_name:
             with st.spinner("Buscando inspiração..."):
                 selected_persona_details = persona_options[selected_persona_name]
-                response = requests.post(SUGGEST_URL, json={"persona": selected_persona_details})
-                if response.status_code == 200:
-                    result = response.json()
-                    if "topics" in result and result["topics"]:
-                        st.session_state.suggested_topics = result["topics"]
-                        st.session_state.generation_history = []
-                        st.rerun()
+                try:
+                    response = requests.post(SUGGEST_URL, json={"persona": selected_persona_details}, timeout=240)
+                    if response.status_code == 200:
+                        result = response.json()
+                        if "topics" in result and result["topics"]:
+                            st.session_state.suggested_topics = result["topics"]
+                            st.session_state.generation_history = []
+                            st.rerun()
+                        else:
+                            st.warning("A IA não retornou sugestões.")
                     else:
-                        st.warning("A IA não retornou sugestões.")
-                else:
-                    st.error("Erro ao obter sugestões da API.")
+                        st.error("Erro ao obter sugestões da API.")
+                except requests.exceptions.RequestException as e:
+                    st.error(f"Erro de API ao sugerir temas: {e}")
         else:
             st.warning("Selecione uma persona para obter sugestões.")
 
@@ -165,6 +184,7 @@ with st.sidebar:
         options=["instagram", "linkedin", "twitter_x"],
         default=["instagram"]
     )
+    
     submit_button = st.button("Gerar Posts ✨", type="primary", use_container_width=True)
 
 # ---- PÁGINA PRINCIPAL (RESULTADOS) ----
@@ -191,7 +211,7 @@ if submit_button:
                 "redes_sociais": redes_sociais
             }
             try:
-                response = requests.post(GENERATE_URL, json=request_data, timeout=90)
+                response = requests.post(GENERATE_URL, json=request_data, timeout=240)
                 if response.status_code == 200:
                     result = response.json()
                     if "content" in result:
@@ -203,8 +223,8 @@ if submit_button:
                         st.error(f"Erro da API: {result.get('error', 'Erro desconhecido')}")
                 else:
                     st.error(f"Erro na API: {response.status_code} - {response.text}")
-            except Exception as e:
-                st.error(f"Ocorreu um erro inesperado: {e}")
+            except requests.exceptions.RequestException as e:
+                st.error(f"Erro de API ao gerar post: {e}")
 
 if st.session_state.generation_history:
     st.markdown("### Resultado Mais Recente")
