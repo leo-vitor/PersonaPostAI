@@ -77,7 +77,7 @@ def get_personas(sid):
     """Busca as personas associadas ao session_id atual."""
     if not sid: return []
     try:
-        response = requests.get(f"{PERSONAS_URL}{sid}", timeout=240)
+        response = requests.get(f"{PERSONAS_URL}{sid}", timeout=600)
         if response.status_code == 200:
             return response.json()
         return []
@@ -96,7 +96,7 @@ def create_persona(sid, nome, descricao, tom_de_voz):
         "session_id": sid
     }
     # Timeout aumentado para 120s
-    return requests.post(PERSONAS_URL, json=persona_data, timeout=120)
+    return requests.post(PERSONAS_URL, json=persona_data, timeout=600)
 
 #---- Título  ----  
 st.title("🤖 PersonaPost AI")
@@ -162,7 +162,7 @@ with st.sidebar:
             with st.spinner("Buscando inspiração..."):
                 selected_persona_details = persona_options[selected_persona_name]
                 try:
-                    response = requests.post(SUGGEST_URL, json={"persona": selected_persona_details}, timeout=240)
+                    response = requests.post(SUGGEST_URL, json={"persona": selected_persona_details}, timeout=600)
                     if response.status_code == 200:
                         result = response.json()
                         if "topics" in result and result["topics"]:
@@ -211,7 +211,7 @@ if submit_button:
                 "redes_sociais": redes_sociais
             }
             try:
-                response = requests.post(GENERATE_URL, json=request_data, timeout=240)
+                response = requests.post(GENERATE_URL, json=request_data, timeout=600)
                 if response.status_code == 200:
                     result = response.json()
                     if "content" in result:
