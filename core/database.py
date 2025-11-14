@@ -6,15 +6,19 @@ from sqlalchemy.orm import sessionmaker
 from .models import Base
 from dotenv import load_dotenv
 
+
 load_dotenv()
 
+
 DATABASE_URL = os.getenv("DATABASE_URL")
+
 
 if not DATABASE_URL:
     try:
         DATABASE_URL = st.secrets.get("DATABASE_URL")
     except (FileNotFoundError, AttributeError):
-        DATABASE_URL = None
+        DATABASE_URL = None 
+
 
 if not DATABASE_URL:
     DATABASE_URL = "sqlite:///./personapost.db"
@@ -22,24 +26,16 @@ if not DATABASE_URL:
 else:
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-
-    if '?' not in DATABASE_URL:
-
-        DATABASE_URL += '?sslmode=require' 
-    
-
-    DATABASE_URL += "&connect_timeout=60&options=-c%20statement_timeout%3D120000"
-    
-    print(f"DEBUG: Usando URL de DB: {DATABASE_URL}") # Log para o Streamlit
-
-    engine = create_engine(DATABASE_URL) 
+    engine = create_engine(DATABASE_URL)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def create_db_and_tables():
+
     Base.metadata.create_all(bind=engine)
 
 def get_db():
+    ""
     db = SessionLocal()
     try:
         yield db
