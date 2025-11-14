@@ -22,14 +22,17 @@ if not DATABASE_URL:
 else:
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+    if '?' not in DATABASE_URL:
+
+        DATABASE_URL += '?sslmode=require' 
     
-    engine = create_engine(
-        DATABASE_URL,
-        connect_args={
-            "connect_timeout": 60,
-            "options": "-c statement_timeout=120000"
-        }
-    )
+
+    DATABASE_URL += "&connect_timeout=60&options=-c%20statement_timeout%3D120000"
+    
+    print(f"DEBUG: Usando URL de DB: {DATABASE_URL}") # Log para o Streamlit
+
+    engine = create_engine(DATABASE_URL) 
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
