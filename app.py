@@ -5,38 +5,56 @@ import requests
 import json
 import time
 import uuid
+import os
 from streamlit_local_storage import LocalStorage
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from dotenv import load_dotenv
 
-# --- Configuração da Página ---
+# --- Importações Diretas da Lógica de Back-end ---
+# (Assumindo que todos os arquivos core/*.py estão corretos)
+from core.database import SessionLocal, create_db_and_tables, get_db
+from core.models import Persona
+from core.llm_client import configure_llm, generate_content
+from core.prompt_builder import build_prompt
+from core import prompt_templates
+
+# --- Configuração da Página (deve ser o primeiro comando st) ---
 st.set_page_config(page_title="PersonaPost AI", page_icon="🤖", layout="wide")
 
-# --- URLs da API ---
-# Lê a URL dos "secrets" no deploy, ou usa a URL local para desenvolvimento
-try:
-    API_BASE_URL = st.secrets.get("API_BASE_URL", "http://127.0.0.1:8000")
-except FileNotFoundError:
-    API_BASE_URL = "http://127.0.0.1:8000"
+# --- Configurar Banco de Dados e API de IA (Executa apenas uma vez) ---
+@st.cache_resource
+def init_connections():
+    """Cria tabelas do BD e configura a API do Gemini uma vez."""
+    print("Iniciando: Criando tabelas do BD...")
+    create_db_and_tables()
+    
+    print("Iniciando: Configurando API do Gemini...")
+    try:
+        # Tenta carregar do Streamlit Secrets (Produção)
+        GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY")
+        if not GEMINI_API_KEY:
+            raise FileNotFoundError # Força a ida para o except local
+        configure_llm(GEMINI_API_KEY)
+        print("API do Gemini configurada via st.secrets.")
+    except (FileNotFoundError, AttributeError):
+        # Se falhar (local), carrega do .env
+        print("st.secrets não encontrado. Carregando do .env local...")
+        load_dotenv()
+        configure_llm() # llm_client lerá do os.getenv()
+        print("API do Gemini configurada via .env.")
 
-GENERATE_URL = f"{API_BASE_URL}/generate"
-PERSONAS_URL = f"{API_BASE_URL}/personas/"
-SUGGEST_URL = f"{API_BASE_URL}/suggest-topics"
+init_connections()
+
+# --- URLs da API (Apenas para referência futura, não mais usadas) ---
+# API_BASE_URL = ... (removido)
 
 # --- Lógica de Persistência com LocalStorage ---
 localS = LocalStorage()
-
-def get_persistent_session_id():
-    """
-    Busca o session_id do localStorage.
-    Se não existir, cria um novo, salva e o retorna.
-    """
-    session_id = localS.getItem("session_id")
-    if not session_id:
-        new_id = str(uuid.uuid4())
-        localS.setItem("session_id", new_id)
-        return new_id
-    return session_id
-
-session_id = get_persistent_session_id()
+session_id = localS.getItem("session_id")
+if not session_id:
+    session_id = str(uuid.uuid4())
+    localS.setItem("session_id", session_id)
         
 # --- Estado da Sessão para UI (Histórico e Sugestões) ---
 if 'generation_history' not in st.session_state:
@@ -73,32 +91,40 @@ def parse_ai_response(text: str) -> dict:
         parsed_data[nome_plataforma] = opcoes
     return parsed_data
 
-def get_personas(sid):
-    """Busca as personas associadas ao session_id atual."""
+# --- NOVAS Funções de Lógica (Conexão Direta com BD) ---
+def get_personas_from_db(sid: str, db: Session):
+    """Busca as personas direto do banco de dados."""
     if not sid: return []
     try:
-        response = requests.get(f"{PERSONAS_URL}{sid}", timeout=600)
-        if response.status_code == 200:
-            return response.json()
+        personas = db.query(Persona).filter(Persona.session_id == sid).all()
+        # Converte objetos SQLAlchemy para dicts
+        return [{"id": p.id, "nome": p.nome, "descricao": p.descricao, "tom_de_voz": p.tom_de_voz, "session_id": p.session_id} for p in personas]
+    except Exception as e:
+        st.sidebar.error(f"Erro ao carregar personas: {e}")
         return []
-    # Captura genérica para qualquer erro de requisição (Timeout, Conexão, etc.)
-    except requests.exceptions.RequestException as e:
-        st.sidebar.error(f"Erro ao carregar personas. O servidor pode estar 'acordando'. Tente recarregar a página.")
-        print(f"Erro em get_personas: {e}")
-        return None
 
-def create_persona(sid, nome, descricao, tom_de_voz):
-    """Cria uma nova persona enviando o session_id junto."""
-    persona_data = {
-        "nome": nome,
-        "descricao": descricao,
-        "tom_de_voz": tom_de_voz,
-        "session_id": sid
-    }
-    # Timeout aumentado para 120s
-    return requests.post(PERSONAS_URL, json=persona_data, timeout=600)
+def create_persona_in_db(sid: str, nome: str, descricao: str, tom_de_voz: str, db: Session):
+    """Cria uma nova persona direto no banco de dados."""
+    persona_data = Persona(
+        nome=nome,
+        descricao=descricao,
+        tom_de_voz=tom_de_voz,
+        session_id=sid
+    )
+    try:
+        db.add(persona_data)
+        db.commit()
+        return True
+    except IntegrityError:
+        db.rollback()
+        st.error(f"Erro: Uma persona com o nome '{nome}' já existe.")
+        return False
+    except Exception as e:
+        db.rollback()
+        st.error(f"Erro ao salvar persona: {e}")
+        return False
 
-#---- Título  ----  
+#---- Título ----  
 st.title("🤖 PersonaPost AI")
 st.markdown("### Gere conteúdos para redes sociais baseados em personas.")
 
@@ -106,23 +132,24 @@ st.markdown("### Gere conteúdos para redes sociais baseados em personas.")
 with st.sidebar:
     st.header("1. Selecione ou Crie uma Persona")
     
-   
-    personas_list = get_personas(session_id)
+    # Obtém uma sessão de banco de dados para usar na barra lateral
+    db = next(get_db())
+    
+    personas_list = get_personas_from_db(session_id, db)
     persona_options = {}
     selected_persona_name = ""
 
-    if personas_list is not None:
-        if personas_list:
-            persona_options = {p['nome']: p for p in personas_list}
-            nomes_das_personas = list(persona_options.keys())
-            selected_persona_name = st.selectbox(
-                "Personas Salvas",
-                options=[""] + nomes_das_personas,
-                format_func=lambda x: "Selecione uma persona" if x == "" else x
-            )
-        else:
-            st.info("Nenhuma persona salva. Crie uma nova abaixo.")
-    
+    if personas_list:
+        persona_options = {p['nome']: p for p in personas_list}
+        nomes_das_personas = list(persona_options.keys())
+        selected_persona_name = st.selectbox(
+            "Personas Salvas",
+            options=[""] + nomes_das_personas,
+            format_func=lambda x: "Selecione uma persona" if x == "" else x
+        )
+    else:
+        st.info("Nenhuma persona salva. Crie uma nova abaixo.")
+
     with st.expander("➕ Criar Nova Persona"):
         with st.form("new_persona_form", clear_on_submit=True):
             new_name = st.text_input("Nome da Persona")
@@ -131,26 +158,11 @@ with st.sidebar:
             submitted = st.form_submit_button("Salvar Persona")
             if submitted:
                 if new_name and new_description and new_tone:
-                    current_session_id = session_id
-                    if not current_session_id:
-                        current_session_id = str(uuid.uuid4())
-                        localS.setItem("session_id", current_session_id)
-                        time.sleep(0.5) 
-                    
-                    response = create_persona(current_session_id, new_name, new_description, new_tone)
-                    
-                    if response.status_code == 200:
+                    success = create_persona_in_db(session_id, new_name, new_description, new_tone, db)
+                    if success:
                         st.success(f"Persona '{new_name}' criada!")
                         time.sleep(1)
                         st.rerun()
-                    else:
-                        error_message = f"Erro ao criar persona. Status: {response.status_code}."
-                        try:
-                            details = response.json().get('detail')
-                            if details: error_message += f" Detalhe: {details}"
-                        except json.JSONDecodeError:
-                            error_message += f" Resposta do servidor: {response.text}"
-                        st.error(error_message)
                 else:
                     st.error("Preencha todos os campos.")
                 
@@ -162,19 +174,21 @@ with st.sidebar:
             with st.spinner("Buscando inspiração..."):
                 selected_persona_details = persona_options[selected_persona_name]
                 try:
-                    response = requests.post(SUGGEST_URL, json={"persona": selected_persona_details}, timeout=600)
-                    if response.status_code == 200:
-                        result = response.json()
-                        if "topics" in result and result["topics"]:
-                            st.session_state.suggested_topics = result["topics"]
-                            st.session_state.generation_history = []
-                            st.rerun()
-                        else:
-                            st.warning("A IA não retornou sugestões.")
+                    # Chama a lógica de IA diretamente
+                    prompt = prompt_templates.SUGGEST_TOPICS_PROMPT_TEMPLATE.format(
+                        nome_da_persona=selected_persona_details.get('nome'),
+                        descricao_da_persona=selected_persona_details.get('descricao')
+                    )
+                    raw_response = generate_content(prompt)
+                    if raw_response:
+                        topics = [line.split('. ', 1)[1] for line in raw_response.strip().split('\n') if '. ' in line]
+                        st.session_state.suggested_topics = topics
+                        st.session_state.generation_history = []
+                        st.rerun()
                     else:
-                        st.error("Erro ao obter sugestões da API.")
-                except requests.exceptions.RequestException as e:
-                    st.error(f"Erro de API ao sugerir temas: {e}")
+                        st.warning("A IA não retornou sugestões.")
+                except Exception as e:
+                    st.error(f"Erro ao sugerir temas: {e}")
         else:
             st.warning("Selecione uma persona para obter sugestões.")
 
@@ -186,6 +200,8 @@ with st.sidebar:
     )
     
     submit_button = st.button("Gerar Posts ✨", type="primary", use_container_width=True)
+    
+    db.close() # Fecha a sessão do banco de dados no final da renderização da sidebar
 
 # ---- PÁGINA PRINCIPAL (RESULTADOS) ----
 st.header("🚀 Posts Gerados")
@@ -211,20 +227,19 @@ if submit_button:
                 "redes_sociais": redes_sociais
             }
             try:
-                response = requests.post(GENERATE_URL, json=request_data, timeout=600)
-                if response.status_code == 200:
-                    result = response.json()
-                    if "content" in result:
-                        st.session_state.suggested_topics = []
-                        st.session_state.generation_history.insert(0, result["content"])
-                        st.session_state.generation_history = st.session_state.generation_history[:5]
-                        st.rerun()
-                    else:
-                        st.error(f"Erro da API: {result.get('error', 'Erro desconhecido')}")
+                # Chama a lógica de IA diretamente
+                final_prompt = build_prompt(request_data["persona"], request_data["objetivo"], request_data["tema"], request_data["redes_sociais"])
+                raw_response = generate_content(final_prompt)
+                
+                if raw_response:
+                    st.session_state.suggested_topics = []
+                    st.session_state.generation_history.insert(0, raw_response)
+                    st.session_state.generation_history = st.session_state.generation_history[:5]
+                    st.rerun()
                 else:
-                    st.error(f"Erro na API: {response.status_code} - {response.text}")
-            except requests.exceptions.RequestException as e:
-                st.error(f"Erro de API ao gerar post: {e}")
+                    st.error(f"Erro da API: A IA não retornou conteúdo.")
+            except Exception as e:
+                st.error(f"Ocorreu um erro inesperado: {e}")
 
 if st.session_state.generation_history:
     st.markdown("### Resultado Mais Recente")
